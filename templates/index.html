@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Prediction Model</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .card-hover:hover {
+            transform: translateY(-5px);
+            transition: all 0.3s ease;
+        }
+        .weather-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen text-white">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="text-center mb-12">
+            <h1 class="text-5xl font-bold mb-4">
+                <i class="fas fa-cloud-sun mr-4"></i>
+                Weather Prediction Model
+            </h1>
+            <p class="text-xl opacity-90">Advanced ML-powered weather forecasting with interactive visualizations</p>
+        </div>
+
+        <!-- City Selection -->
+        <div class="mb-8">
+            <div class="weather-card rounded-xl p-6 max-w-md mx-auto">
+                <label class="block text-lg font-semibold mb-3">
+                    <i class="fas fa-map-marker-alt mr-2"></i>
+                    Select City
+                </label>
+                <select id="citySelect" class="w-full p-3 rounded-lg bg-white/20 border border-white/30 text-white">
+                    {% for city in cities %}
+                    <option value="{{ city }}" {% if city == 'New York' %}selected{% endif %}>{{ city }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <!-- Weather Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="weather-card rounded-xl p-6 card-hover">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm opacity-75">Current Temp</p>
+                        <p class="text-2xl font-bold" id="currentTemp">--°C</p>
+                    </div>
+                    <i class="fas fa-thermometer-half text-3xl opacity-75"></i>
+                </div>
+            </div>
+            
+            <div class="weather-card rounded-xl p-6 card-hover">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm opacity-75">Humidity</p>
+                        <p class="text-2xl font-bold" id="currentHumidity">--%</p>
+                    </div>
+                    <i class="fas fa-tint text-3xl opacity-75"></i>
+                </div>
+            </div>
+            
+            <div class="weather-card rounded-xl p-6 card-hover">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm opacity-75">Pressure</p>
+                        <p class="text-2xl font-bold" id="currentPressure">-- hPa</p>
+                    </div>
+                    <i class="fas fa-gauge text-3xl opacity-75"></i>
+                </div>
+            </div>
+            
+            <div class="weather-card rounded-xl p-6 card-hover">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm opacity-75">Wind Speed</p>
+                        <p class="text-2xl font-bold" id="currentWind">-- km/h</p>
+                    </div>
+                    <i class="fas fa-wind text-3xl opacity-75"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <!-- Temperature Chart -->
+            <div class="weather-card rounded-xl p-6">
+                <h3 class="text-xl font-semibold mb-4">
+                    <i class="fas fa-chart-line mr-2"></i>
+                    Temperature Trend (90 Days)
+                </h3>
+                <div id="temperatureChart" class="h-80"></div>
+            </div>
+
+            <!-- 7-Day Forecast -->
+            <div class="weather-card rounded-xl p-6">
+                <h3 class="text-xl font-semibold mb-4">
+                    <i class="fas fa-calendar-week mr-2"></i>
+                    7-Day Forecast
+                </h3>
+                <div id="forecastContainer" class="space-y-3">
+                    <!-- Forecast items will be populated here -->
+                </div>
+                <button id="generateForecast" class="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-300">
+                    <i class="fas fa-magic mr-2"></i>
+                    Generate Forecast
+                </button>
+            </div>
+        </div>
+
+        <!-- Additional Charts -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <!-- Weather Correlation -->
+            <div class="weather-card rounded-xl p-6">
+                <h3 class="text-xl font-semibold mb-4">
+                    <i class="fas fa-project-diagram mr-2"></i>
+                    Weather Parameters Correlation
+                </h3>
+                <div id="correlationChart" class="h-80"></div>
+            </div>
+
+            <!-- Model Performance -->
+            <div class="weather-card rounded-xl p-6">
+                <h3 class="text-xl font-semibold mb-4">
+                    <i class="fas fa-brain mr-2"></i>
+                    Model Performance
+                </h3>
+                <div id="modelPerformance">
+                    <div class="text-center py-8">
+                        <i class="fas fa-spinner fa-spin text-3xl mb-4"></i>
+                        <p>Loading model performance...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading Overlay -->
+        <div id="loadingOverlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="weather-card rounded-xl p-8 text-center">
+                <i class="fas fa-spinner fa-spin text-4xl mb-4"></i>
+                <p class="text-xl">Loading weather data...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentCity = 'New York';
+        
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', function() {
+            loadWeatherData();
+            loadModelPerformance();
+            
+            // City selection handler
+            document.getElementById('citySelect').addEventListener('change', function() {
+                currentCity = this.value;
+                loadWeatherData();
+            });
+            
+            // Forecast generation handler
+            document.getElementById('generateForecast').addEventListener('click', function() {
+                generateForecast();
+            });
+        });
+        
+        function showLoading() {
+            document.getElementById('loadingOverlay').classList.remove('hidden');
+        }
+        
+        function hideLoading() {
+            document.getElementById('loadingOverlay').classList.add('hidden');
+        }
+        
+        async function loadWeatherData() {
+            showLoading();
+            try {
+                const response = await fetch(`/api/weather/${currentCity}`);
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                updateWeatherStats(data);
+                updateTemperatureChart(data);
+                updateCorrelationChart();
+                
+            } catch (error) {
+                console.error('Error loading weather data:', error);
+                alert('Error loading weather data: ' + error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+        
+        function updateWeatherStats(data) {
+            const latest = data.temperatures.length - 1;
+            document.getElementById('currentTemp').textContent = `${data.temperatures[latest]}°C`;
+            document.getElementById('currentHumidity').textContent = `${data.humidity[latest]}%`;
+            document.getElementById('currentPressure').textContent = `${data.pressure[latest]} hPa`;
+            document.getElementById('currentWind').textContent = `${data.wind_speed[latest]} km/h`;
+        }
+        
+        function updateTemperatureChart(data) {
+            const trace = {
+                x: data.dates,
+                y: data.temperatures,
+                type: 'scatter',
+                mode: 'lines+markers',
+                name: 'Temperature',
+                line: { color: '#60A5FA', width: 3 },
+                marker: { color: '#3B82F6', size: 6 }
+            };
+            
+            const layout = {
+                title: '',
+                xaxis: { title: 'Date', color: 'white' },
+                yaxis: { title: 'Temperature (°C)', color: 'white' },
+                plot_bgcolor: 'rgba(0,0,0,0)',
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                font: { color: 'white' },
+                margin: { t: 20, r: 20, b: 40, l: 60 }
+            };
+            
+            Plotly.newPlot('temperatureChart', [trace], layout, {responsive: true});
+        }
+        
+        async function updateCorrelationChart() {
+            try {
+                const response = await fetch(`/api/chart/${currentCity}/weather_correlation`);
+                const data = await response.json();
+                
+                if (data.chart) {
+                    const chartData = JSON.parse(data.chart);
+                    Plotly.newPlot('correlationChart', chartData.data, chartData.layout, {responsive: true});
+                }
+            } catch (error) {
+                console.error('Error loading correlation chart:', error);
+            }
+        }
+        
+        async function generateForecast() {
+            const button = document.getElementById('generateForecast');
+            const originalText = button.innerHTML;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Generating...';
+            button.disabled = true;
+            
+            try {
+                const response = await fetch(`/api/predict/${currentCity}`);
+                const predictions = await response.json();
+                
+                if (predictions.error) {
+                    throw new Error(predictions.error);
+                }
+                
+                displayForecast(predictions);
+                
+            } catch (error) {
+                console.error('Error generating forecast:', error);
+                alert('Error generating forecast: ' + error.message);
+            } finally {
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }
+        }
+        
+        function displayForecast(predictions) {
+            const container = document.getElementById('forecastContainer');
+            container.innerHTML = '';
+            
+            predictions.forEach(pred => {
+                const date = new Date(pred.date);
+                const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+                const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                
+                const forecastItem = document.createElement('div');
+                forecastItem.className = 'flex items-center justify-between p-3 bg-white/10 rounded-lg';
+                forecastItem.innerHTML = `
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mr-4">
+                            <i class="fas fa-sun text-white"></i>
+                        </div>
+                        <div>
+                            <p class="font-semibold">${dayName}</p>
+                            <p class="text-sm opacity-75">${dateStr}</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-xl font-bold">${pred.predicted_temperature}°C</p>
+                        <p class="text-sm opacity-75">Day ${pred.day}</p>
+                    </div>
+                `;
+                container.appendChild(forecastItem);
+            });
+        }
+        
+        async function loadModelPerformance() {
+            try {
+                const response = await fetch('/api/model-performance');
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                displayModelPerformance(data);
+                
+            } catch (error) {
+                console.error('Error loading model performance:', error);
+                document.getElementById('modelPerformance').innerHTML = `
+                    <div class="text-center py-8 text-red-400">
+                        <i class="fas fa-exclamation-triangle text-3xl mb-4"></i>
+                        <p>Error loading model performance</p>
+                    </div>
+                `;
+            }
+        }
+        
+        function displayModelPerformance(data) {
+            const container = document.getElementById('modelPerformance');
+            
+            let html = `
+                <div class="mb-4">
+                    <h4 class="font-semibold text-lg mb-2">Best Model: ${data.best_model}</h4>
+                </div>
+                <div class="space-y-3">
+            `;
+            
+            Object.entries(data.performance).forEach(([model, metrics]) => {
+                const isSelected = model === data.best_model;
+                html += `
+                    <div class="p-3 rounded-lg ${isSelected ? 'bg-green-500/20 border border-green-500/50' : 'bg-white/10'}">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="font-medium">${model}</span>
+                            ${isSelected ? '<i class="fas fa-crown text-yellow-400"></i>' : ''}
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 text-sm">
+                            <div>R² Score: ${metrics.r2_score}</div>
+                            <div>MSE: ${metrics.mse}</div>
+                            <div>MAE: ${metrics.mae}</div>
+                            <div>CV Mean: ${metrics.cv_mean}</div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+    </script>
+</body>
+</html>
