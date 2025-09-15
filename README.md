@@ -12,6 +12,9 @@ A comprehensive machine learning project for weather forecasting with an interac
 - **Model Performance Comparison**: Automatic model selection based on performance metrics
 - **Real-time Visualizations**: Interactive charts using Plotly.js
 
+  
+<img width="1033" height="865" alt="Screenshot 2025-09-11 at 9 22 41 PM" src="https://github.com/user-attachments/assets/c5809bec-c047-4a49-9d97-3ea01e507149" />
+
 ## 📁 Project Structure
 
 ```
