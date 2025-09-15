@@ -226,4 +226,3 @@ For questions or suggestions, please open an issue in the GitHub repository.
 ---
 
 **Built with ❤️ using Python, Flask, Scikit-learn, and Plotly**
-# Weather-Prediction-Model
